@@ -1,5 +1,3 @@
-// Graph.cpp: ���������� ����� ����� ��� ����������� ����������.
-//
 #include "stdafx.h"
 #include <iostream>
 #include <fstream>
@@ -16,11 +14,11 @@
  
 using namespace std;
  
-class RepresType { 
+class RepresType { // вспомогательный класс для представления графа
 protected:
     int vertex_num = 0;
-    bool weighted;
-    bool oriented;
+    bool is_weighted;
+    bool is_oriented;
 public:
     virtual void readGraph(istream & ist) = 0;
     virtual void addEdge(int from, int to, int weight = 1) = 0;
@@ -38,24 +36,24 @@ struct Edge {
     int cap;
 };
  
-vector<string> SplitingTheString(string str, char symbol) {
-    vector<string> string_result;
-    string curent_string = "";
+vector<string> SplitingTheString(string str, char delim) { // разбиение строки в вектор по символу delim
+    vector<string> result;
+    string cur_strg = "";
     for (int i = 0; i < str.size(); i++) {
-        if (str[i] != symbol)
-            curent_string.push_back(str[i]);
+        if (str[i] != delim)
+            cur_strg.push_back(str[i]);
         else {
-            if (curent_string != "")
-                string_result.push_back(curent_string);
-            curent_string = "";
+            if (cur_strg != "")
+                result.push_back(cur_strg);
+            cur_strg = "";
         }
     }
-    if (curent_string != "")
-        string_result.push_back(curent_string);
-    return string_result;
+    if (cur_strg != "")
+        result.push_back(cur_strg);
+    return result;
 }
  
-class DSU {
+class DSU { // Система непересекающихся множеств
 private:
     int size = 0;
     vector <int> rank;
@@ -75,10 +73,11 @@ public:
                 swap(x, y);
             parent[y - 1] = x;
             if (rank[x - 1] == rank[y - 1])
-                ++rank[x - 1];}
+                ++rank[x - 1];
+        }
     }
  
-    void new_set(int x) {
+    void make_set(int x) {
         if (parent.size() < x) {
             for (int i = size; i < x; i++) {
                 rank.push_back(0);
@@ -87,7 +86,8 @@ public:
             size = x;
         }
         rank[x - 1] = 0;
-        parent[x - 1] = x;}
+        parent[x - 1] = x;
+    }
 };
  
 void QuickSorting(vector<tuple<int, int, int>> &mas, int first, int last)
@@ -134,15 +134,15 @@ public:
  
     AdjMatrixGraph(vector<vector<int>> matrix, tuple<bool, bool, int> info) {
         adj_matrix = matrix;
-        weighted = get<0>(info);
-        oriented = get<1>(info);
+        is_weighted = get<0>(info);
+        is_oriented = get<1>(info);
         vertex_num = get<2>(info);
     }
  
     void readGraph(istream & ist) override {
         ist >> vertex_num;
-        ist >> oriented;
-        ist >> weighted;
+        ist >> is_oriented;
+        ist >> is_weighted;
         for (int i = 0; i < vertex_num; i++) {
             vector<int> row;
             for (int j = 0; j < vertex_num; j++) {
@@ -156,7 +156,7 @@ public:
  
     void addEdge(int from, int to, int weight = 1) override {
         adj_matrix[from - 1][to - 1] = weight;
-        if (!oriented)
+        if (!is_oriented)
             adj_matrix[to - 1][from - 1] = weight;
     }
  
@@ -168,7 +168,7 @@ public:
     int changeEdge(int from, int to, int newWeight) override {
         int weight = adj_matrix[from - 1][to - 1];
         adj_matrix[to - 1][from - 1] = newWeight;
-        if (!oriented)
+        if (!is_oriented)
             adj_matrix[from - 1][to - 1] = newWeight;
         return weight;
     }
@@ -197,7 +197,7 @@ public:
             for (int j = 0; j < vertex_num; j++) {
                 if (adj_matrix[i][j] > 0) {
                     list_of_edges.push_back(tuple<int, int, int>(i + 1, j + 1, adj_matrix[i][j]));
-                    if (!oriented)
+                    if (!is_oriented)
                         adj_matrix[j][i] = 0;
                 }
             }
@@ -215,7 +215,7 @@ public:
     }
  
     tuple<bool, bool, int> GetInfo() override {
-        return tuple<bool, bool, int>(weighted, oriented, vertex_num);
+        return tuple<bool, bool, int>(is_weighted, is_oriented, vertex_num);
     }
  
 };
@@ -238,19 +238,19 @@ public:
  
     AdjListGraph(vector<set<pair<int, int>>> list, tuple<bool, bool, int> info) {
         adj_list = list;
-        weighted = get<0>(info);
-        oriented = get<1>(info);
+        is_weighted = get<0>(info);
+        is_oriented = get<1>(info);
         vertex_num = get<2>(info);
     }
  
     void readGraph(istream & ist) override {
         ist >> vertex_num;
-        ist >> oriented;
-        ist >> weighted;
+        ist >> is_oriented;
+        ist >> is_weighted;
         string cur_vertexList;
         getline(ist, cur_vertexList);
  
-        if (weighted) {
+        if (is_weighted) {
             for (int i = 0; i < vertex_num; i++) {
                 getline(ist, cur_vertexList);
                 vector<string> neigh = SplitingTheString(cur_vertexList, ' ');
@@ -277,14 +277,14 @@ public:
     }
  
     void addEdge(int from, int to, int weight = 1) override {
-        if (!weighted) {
+        if (!is_weighted) {
             adj_list[from - 1].insert(pair<int, int>(to, 1));
-            if (!oriented)
+            if (!is_oriented)
                 adj_list[to - 1].insert(pair<int, int>(from, 1));
         }
         else {
             adj_list[from - 1].insert(pair<int, int>(to, weight));
-            if (!oriented)
+            if (!is_oriented)
                 adj_list[to - 1].insert(pair<int, int>(from, weight));
         }
     }
@@ -295,7 +295,7 @@ public:
                 adj_list[from - 1].erase(iter);
                 break;
             }
-        if (!oriented) {
+        if (!is_oriented) {
             for (auto iter = adj_list[to - 1].begin(); iter != adj_list[to - 1].end(); iter++)
                 if ((iter->first) == from) {
                     adj_list[to - 1].erase(iter);
@@ -313,7 +313,7 @@ public:
             }
         this->removeEdge(from, to);
         this->addEdge(from, to, newWeight);
-        if (!oriented) {
+        if (!is_oriented) {
             this->removeEdge(to, from);
             this->addEdge(to, from, newWeight);
         }
@@ -329,11 +329,11 @@ public:
             adj_matrix.push_back(row);
         }
  
-        if (!weighted) {
+        if (!is_weighted) {
             for (int i = 0; i < vertex_num; i++) {
                 for (auto iter = adj_list[i].begin(); iter != adj_list[i].end(); iter++) {
                     adj_matrix[i][iter->first - 1] = 1;
-                    if (!oriented)
+                    if (!is_oriented)
                         adj_matrix[iter->first - 1][i] = 1;
                     else
                         adj_matrix[iter->first - 1][i] = -1;
@@ -344,7 +344,7 @@ public:
             for (int i = 0; i < vertex_num; i++) {
                 for (auto iter = adj_list[i].begin(); iter != adj_list[i].end(); iter++) {
                     adj_matrix[i][iter->first - 1] = iter->second;
-                    if (!oriented)
+                    if (!is_oriented)
                         adj_matrix[iter->first - 1][i] = iter->second;
                     else
                         adj_matrix[iter->first - 1][i] = -(iter->second);
@@ -379,13 +379,13 @@ public:
     void writeGraph(string fileName) override {
         ofstream file(fileName);
         file << "L " << vertex_num << endl;
-        file << oriented << " " << weighted;
+        file << is_oriented << " " << is_weighted;
         for (int i = 0; i < vertex_num; i++) {
             file << endl;
             for (auto iter = adj_list[i].begin(); iter != adj_list[i].end(); iter++) {
                 if (iter != adj_list[i].begin()) file << " ";
                 file << iter->first;
-                if (weighted)
+                if (is_weighted)
                     file << " " << iter->second;
             }
         }
@@ -393,7 +393,7 @@ public:
     }
  
     tuple<bool, bool, int> GetInfo() override {
-        return tuple<bool, bool, int>(weighted, oriented, vertex_num);
+        return tuple<bool, bool, int>(is_weighted, is_oriented, vertex_num);
     }
  
     vector<tuple<int, int, int>> getSpaingTreePrima() {
@@ -401,7 +401,7 @@ public:
         priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> prior_queue;
         vector<int> distances(vertex_num, INT32_MAX);
         vector<int> parent(vertex_num, -1);
-        vector<bool> marked(vertex_num, false);
+        vector<bool> is_marked(vertex_num, false);
  
         prior_queue.push(make_pair(0, 1));
         distances[0] = 0;
@@ -409,11 +409,11 @@ public:
         while (!prior_queue.empty()) {
             int u = prior_queue.top().second - 1;
             prior_queue.pop();
-            marked[u] = true;
+            is_marked[u] = true;
             for (auto it = adj_list[u].begin(); it != adj_list[u].end(); ++it) {
                 int v = it->first - 1;
                 int weight = it->second;
-                if (marked[v] == false && distances[v] > weight) {
+                if (is_marked[v] == false && distances[v] > weight) {
                     distances[v] = weight;
                     prior_queue.push(make_pair(distances[v], v + 1));
                     parent[v] = u;
@@ -426,6 +426,70 @@ public:
         return spaingTree;
     }
  
+    bool checkEulerCircle() {
+        for (int i = 0; i < vertex_num; i++) {
+            if (adj_list[i].size() % 2 == 1)
+                return false;
+        }
+        return true;
+    }
+ 
+    int checkEuler(bool circleExist) {
+        int firstVertex = 1;
+        if (!circleExist) {
+            int odd_vertexes_num = 0;
+            for (int i = 0; i < vertex_num; i++) {
+                if (adj_list[i].size() % 2 == 1) {
+                    firstVertex = i + 1;
+                    odd_vertexes_num++;
+                }
+            }
+            if (odd_vertexes_num > 2)
+                return 0;
+        }
+        return firstVertex;
+    }
+ 
+    vector<int> getEuleranTourEffective() {
+        vector<set<pair<int, int>>> list = adj_list;
+        vector<int> tour;
+        stack<int> s;
+        int firstVertex = checkEuler(checkEulerCircle());
+        if (firstVertex == 0) return tour;
+        s.push(firstVertex);
+ 
+        while (!s.empty()) {
+            int w = s.top();
+            int first = -1; int second = -1;
+            if (list[w - 1].size() > 0) {
+                for (auto iter = list[w - 1].begin(); iter != list[w - 1].end(); iter++) {
+                    if (list[iter->first - 1].size() > 0) {
+                        s.push(iter->first);
+                        first = w;
+                        second = iter->first;
+                        list[w - 1].erase(iter);
+                        break;
+                    }
+                }
+            }
+ 
+            if (second != -1) {
+                for (auto iter = list[second - 1].begin(); iter != list[second - 1].end(); iter++) {
+                    if (iter->first == first) {
+                        list[second - 1].erase(iter);
+                        break;
+                    }
+                }
+            }
+ 
+            if (w == s.top()) {
+                tour.push_back(w);
+                s.pop();
+            }
+        }
+        return tour;
+    }
+ 
     int getnum_of_edges() {
         int num = 0;
         for (int i = 0; i < adj_list.size(); i++) {
@@ -433,7 +497,63 @@ public:
         }
         return num;
     }
-  
+ 
+    bool isBridge(int from, int to, int weigth) {
+        removeEdge(from + 1, to + 1);
+        vector<bool> marks;
+        for (int i = 0; i < vertex_num; i++)
+            marks.push_back(false);
+        queue<int> q;
+        marks[from] = true;
+        q.push(from);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (auto iter = adj_list[u].begin(); iter != adj_list[u].end(); iter++) {
+                if (iter->first - 1 == to) {
+                    return false;
+                }
+                if (!marks[iter->first - 1]) {
+                    marks[iter->first - 1] = true;
+                    q.push(iter->first - 1);
+                }
+            }
+        }
+        addEdge(from + 1, to + 1, weigth);
+        return true;
+    }
+ 
+    vector<int> getEuleranTourFleri() {
+        vector<int> tour;
+        int v = checkEuler(checkEulerCircle());
+        if (v == 0) return tour;
+        tour.push_back(v);
+        int num_of_edges = getnum_of_edges() / 2;
+ 
+        while (num_of_edges > 0) {
+            int count = 0;
+            set<pair<int, int>>::iterator iter = adj_list[v - 1].begin();
+            while (iter != adj_list[v - 1].end()) {
+                int u = iter->first - 1;
+                int weigth = iter->second;
+                count++;
+                if ((!isBridge(v - 1, u, weigth)) || (adj_list[v - 1].size() == 1)) {
+                    num_of_edges--;
+                    tour.push_back(u + 1);
+                    removeEdge(v, u + 1);
+                    v = u + 1;
+                    break;
+                }
+                else {
+                    iter = adj_list[v - 1].begin();
+                    for (int i = 0; i < count; i++)
+                        iter++;
+                }
+            }
+        }
+        return tour;
+    }
+ 
     int checkBipart() {
         vector<int> marks;
         for (int i = 0; i < adj_list.size(); i++)
@@ -502,7 +622,49 @@ public:
         }
         return result;
     }
-
+ 
+    vector<map<int, Edge>> transformToTransportNet() {
+        vector<map<int, Edge>> result;
+        for (int i = 0; i < vertex_num; i++) {
+            map<int, Edge> cur_vertex;
+            for (auto iter = adj_list[i].begin(); iter != adj_list[i].end(); iter++) {
+                Edge cur_edge{ iter->second,0 };
+                cur_vertex.insert(make_pair(iter->first, cur_edge));
+            }
+            result.push_back(cur_vertex);
+        }
+        return result;
+    }
+ 
+    int findFlow(vector<map<int, Edge>> &net, int vertex, int sink, int flow, vector<bool> &is_visited) {
+        if (vertex == sink)
+            return flow;
+        is_visited[vertex] = true;
+        for (auto iter = net[vertex].begin(); iter != net[vertex].end(); iter++) {
+            Edge edge = iter->second;
+            int u = iter->first - 1;
+            if ((!is_visited[u]) && (edge.flow < edge.cap)) {
+                int delta = findFlow(net, u, sink, min(flow, edge.cap - edge.flow), is_visited);
+                if (delta > 0) {
+                    edge.flow += delta;
+                    net[vertex].insert(make_pair(u, edge));
+                    return delta;
+                }
+            }
+        }
+        return 0;
+    }
+ 
+    vector<set<pair<int, int>>> flowFordFulkerson(int sourse, int sink) {
+        vector<set<pair<int, int>>> tree;
+        vector<map<int, Edge>> list = transformToTransportNet();
+        vector<bool> is_visited;
+        for (int i = 0; i < vertex_num; i++)
+            is_visited.push_back(false);
+        int a = findFlow(list, sourse - 1, sink - 1, 0, is_visited);
+ 
+        return tree;
+    }
 };
  
 class ListOfEdgesGraph :public RepresType {
@@ -520,8 +682,8 @@ public:
  
     ListOfEdgesGraph(vector <tuple<int, int, int>> list, tuple<bool, bool, int> info) {
         list_of_edges = list;
-        weighted = get<0>(info);
-        oriented = get<1>(info);
+        is_weighted = get<0>(info);
+        is_oriented = get<1>(info);
         vertex_num = get<2>(info);
         num_of_edges = list.size();
     }
@@ -529,11 +691,11 @@ public:
     void readGraph(istream & ist) override {
         ist >> vertex_num;
         ist >> num_of_edges;
-        ist >> oriented;
-        ist >> weighted;
+        ist >> is_oriented;
+        ist >> is_weighted;
         string cur_edge;
         getline(ist, cur_edge);
-        if (weighted) {
+        if (is_weighted) {
             for (int i = 0; i < num_of_edges; i++) {
                 getline(ist, cur_edge);
                 vector<string> vertexes = SplitingTheString(cur_edge, ' ');
@@ -550,7 +712,7 @@ public:
     }
  
     void addEdge(int from, int to, int weight = 1) override {
-        if (!weighted) {
+        if (!is_weighted) {
             list_of_edges.push_back(tuple<int, int, int>(from, to, 1));
         }
         else {
@@ -593,7 +755,7 @@ public:
  
         for (int i = 0; i < num_of_edges; i++) {
             adj_matrix[get<0>(list_of_edges[i]) - 1][get<1>(list_of_edges[i]) - 1] = get<2>(list_of_edges[i]);
-            if (!oriented)
+            if (!is_oriented)
                 adj_matrix[get<1>(list_of_edges[i]) - 1][get<0>(list_of_edges[i]) - 1] = get<2>(list_of_edges[i]);
             else
                 adj_matrix[get<1>(list_of_edges[i]) - 1][get<0>(list_of_edges[i]) - 1] = -get<2>(list_of_edges[i]);
@@ -610,7 +772,7 @@ public:
  
         for (int i = 0; i < num_of_edges; i++) {
             adj_list[get<0>(list_of_edges[i]) - 1].insert(pair<int, int>(get<1>(list_of_edges[i]), get<2>(list_of_edges[i])));
-            if (!oriented)
+            if (!is_oriented)
                 adj_list[get<1>(list_of_edges[i]) - 1].insert(pair<int, int>(get<0>(list_of_edges[i]), get<2>(list_of_edges[i])));
         }
         return adj_list;
@@ -623,10 +785,10 @@ public:
     void writeGraph(string fileName) override {
         ofstream file(fileName);
         file << "E " << vertex_num << " " << list_of_edges.size() << endl;
-        file << oriented << " " << weighted << endl;
+        file << is_oriented << " " << is_weighted << endl;
         for (int i = 0; i < num_of_edges; i++) {
             file << get<0>(list_of_edges[i]) << " " << get<1>(list_of_edges[i]);
-            if (weighted)
+            if (is_weighted)
                 file << " " << get<2>(list_of_edges[i]);
             file << endl;
         }
@@ -634,7 +796,7 @@ public:
     }
  
     tuple<bool, bool, int> GetInfo() override {
-        return tuple<bool, bool, int>(weighted, oriented, vertex_num);
+        return tuple<bool, bool, int>(is_weighted, is_oriented, vertex_num);
     }
  
     vector <tuple<int, int, int>> getSpaingTreeKruscal() {
@@ -643,7 +805,7 @@ public:
  
         DSU dsu;
         for (int i = 0; i < vertex_num; i++)
-            dsu.new_set(i + 1);
+            dsu.make_set(i + 1);
         for (int queue = 0; queue < num_of_edges; queue++) {
             tuple<int, int, int> edge = list_of_edges[queue];
             if (dsu.find(get<0>(edge)) != dsu.find(get<1>(edge))) {
@@ -658,7 +820,7 @@ public:
         vector <tuple<int, int, int>> spaingTree;
         DSU dsu;
         for (int i = 0; i < vertex_num; i++)
-            dsu.new_set(i + 1);
+            dsu.make_set(i + 1);
  
         while (spaingTree.size() < vertex_num - 1) {
             auto min_edges = map<int, int>();
@@ -769,6 +931,28 @@ public:
         return *spaingTree;
     }
  
+    bool checkEulerCircle() {
+        this->transformToAdjList();
+        return reinterpret_cast<AdjListGraph*>(repres)->checkEulerCircle();
+    }
+ 
+    int checkEuler(bool circleExist) {
+        this->transformToAdjList();
+        circleExist = reinterpret_cast<AdjListGraph*>(repres)->checkEulerCircle();
+        return reinterpret_cast<AdjListGraph*>(repres)->checkEuler(circleExist);
+    }
+ 
+    vector<int> getEuleranTourFleri() {
+        Graph *graph = new Graph();
+        graph->repres = new AdjListGraph(repres->transformToAdjList(), repres->GetInfo());
+        return reinterpret_cast<AdjListGraph*>(graph->repres)->getEuleranTourFleri();
+    }
+ 
+    vector<int> getEuleranTourEffective() {
+        this->transformToAdjList();
+        return reinterpret_cast<AdjListGraph*>(repres)->getEuleranTourEffective();
+    }
+ 
     int checkBipart(vector<char> &marks) {
         this->transformToAdjList();
         return reinterpret_cast<AdjListGraph*>(repres)->checkBipart();
@@ -778,10 +962,18 @@ public:
         this->transformToAdjList();
         return reinterpret_cast<AdjListGraph*>(repres)->getMaximumMatchingBipart();
     }
+ 
+    Graph flowFordFulkerson(int sourse, int sink) {
+        this->transformToAdjList();
+        vector<set<pair<int, int>>> tree = reinterpret_cast<AdjListGraph*>(repres)->flowFordFulkerson(sourse, sink);
+        Graph* max_flow = new Graph();
+        max_flow->repres = new AdjListGraph(tree, repres->GetInfo());
+        return *max_flow;
+    }
+ 
 };
  
 int main()
 {
     return 0;
 }
-

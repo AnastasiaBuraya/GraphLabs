@@ -925,7 +925,7 @@ public:
  
     Graph getSpaingTreeBoruvka() {
         this->transformToListOfEdges();
-        vector <tuple<int, int, int>> minimalSpanningTree = reinterpret_cast<ListOfEdgesGraph*>(repres)->getSpaingTreeKruscal();
+        vector <tuple<int, int, int>> minimalSpanningTree = reinterpret_cast<ListOfEdgesGraph*>(repres)->getSpaingTreeBoruvka();
         Graph* spaingTree = new Graph();
         spaingTree->repres = new ListOfEdgesGraph(minimalSpanningTree, repres->GetInfo());
         return *spaingTree;
